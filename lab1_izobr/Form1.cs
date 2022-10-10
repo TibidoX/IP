@@ -13,6 +13,7 @@ namespace lab1_izobr
     public partial class Form1 : Form
     {
         Bitmap image;
+        Bitmap prevImage;
         public Form1()
         {
             InitializeComponent();
@@ -35,6 +36,7 @@ namespace lab1_izobr
             if (dialog.ShowDialog() == DialogResult.OK)
             {
                 image = new Bitmap(dialog.FileName);
+                prevImage = new Bitmap(dialog.FileName);
                 pictureBox1.Image = image;
                 pictureBox1.Refresh();
             }
@@ -210,9 +212,6 @@ namespace lab1_izobr
         {
             Bitmap resImage = sourceImage;
 
-            // Так как изображение исходное в оттенках серого, значит можно взять для сравнения любой канал.
-            // В данном коде взят красный канал.
-
             int width = resImage.Width;
             int height = resImage.Height;
 
@@ -246,6 +245,441 @@ namespace lab1_izobr
         private void numericUpDown1_ValueChanged(object sender, EventArgs e)
         {
 
+        }
+
+        public int[] CalculateHistogram(Bitmap image)
+        {
+            int[] hist = new int[256];
+
+            for (int y = 0; y < image.Height; y++)
+                for (int x = 0; x < image.Width; x++)
+                {
+                    Color color = image.GetPixel(x, y);
+                    hist[color.R]++;
+                }
+            return hist;
+        }
+
+        public Bitmap GlobalGist(Bitmap sourceImage)
+        {
+            int width = sourceImage.Width;
+            int height = sourceImage.Height;
+            Bitmap resImage = new Bitmap(width, height);
+
+            
+            int[] hist = CalculateHistogram(sourceImage);
+
+            
+            int histSum = hist.Sum();
+            int cut = (int)(histSum * 0.05);
+
+            for (int i = 0; i < 255; i++)
+            {
+                if (hist[i] < cut)
+                {
+                    cut -= hist[i];
+                    hist[i] = 0;
+                }
+                else
+                {
+                    hist[i] -= cut;
+                }
+                if (cut == 0) break;
+
+            }
+
+            cut = (int)(histSum * 0.05);
+
+            for (int i = 255; i < 0; i--)
+            {
+                if (hist[i] < cut)
+                {
+                    cut -= hist[i];
+                    hist[i] = 0;
+                }
+                else
+                {
+                    hist[i] -= cut;
+                }
+                if (cut == 0) break;
+
+            }
+
+            int t = 0;
+
+            int weight = 0;
+            for (int i = 0; i < 255; i++)
+            {
+                if (hist[i] == 0) continue;
+
+                weight += hist[i] * i;
+            }
+
+            t = (int)(weight / hist.Sum());
+
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++)
+                {
+                    Color color = sourceImage.GetPixel(x, y);
+                    if (color.R >= t) resImage.SetPixel(x, y, Color.White);
+                    else resImage.SetPixel(x, y, Color.Black);
+
+                }
+            return resImage;
+        }
+
+        private void глобальнаяпоГистограммеToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Bitmap result = GlobalGist(image);
+            pictureBox1.Image = result;
+            pictureBox1.Refresh();
+        }
+
+        private void медианныйToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Bitmap result = Median(image);
+            prevImage = image;
+            image = result;
+            pictureBox1.Image = result;
+            pictureBox1.Refresh();
+        }
+
+        public Bitmap Median(Bitmap sourceImage)
+        {
+            int width = sourceImage.Width;
+            int height = sourceImage.Height;
+            Bitmap resImage = new Bitmap(width, height);
+
+
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++)
+                {
+                    int ct = 0;
+                    int radiusX = 1;
+                    int radiusY = radiusX;
+
+                    byte[] R = new byte[9];
+                    byte[] G = new byte[9];
+                    byte[] B = new byte[9];
+
+                    int med = (int)(9f / 2f);
+
+                    for (int l = -radiusY; l <= radiusY; l++)
+                        for (int k = -radiusX; k <= radiusX; k++)
+                        {
+                            int idX = clamp(x + k, 0, sourceImage.Width - 1);
+                            int idY = clamp(y + l, 0, sourceImage.Height - 1);
+                            Color neighborColor = sourceImage.GetPixel(idX, idY);
+
+                            R[ct] = neighborColor.R;
+                            G[ct] = neighborColor.G;
+                            B[ct] = neighborColor.B;
+                            ct++;
+                        }
+
+                    Array.Sort(R);
+                    Array.Sort(G);
+                    Array.Sort(B);
+
+                    byte resultR = R[med];
+                    byte resultG = G[med];
+                    byte resultB = B[med];
+
+                    resImage.SetPixel(x,y,Color.FromArgb(resultR, resultG, resultB));
+                }
+            return resImage;
+        }
+
+
+        public Bitmap Gauss(Bitmap sourceImage)
+        {
+            int width = sourceImage.Width;
+            int height = sourceImage.Height;
+            Bitmap resImage = new Bitmap(width, height);
+
+
+            float[,] kernel = null;
+
+
+            int radius = 3;
+            int sigma = 2;
+
+            int size = 2 * radius + 1;
+            kernel = new float[size, size];
+            float norm = 0;
+            for (int i = -radius; i <= radius; i++)
+                for (int j = -radius; j <= radius; j++)
+                {
+                    kernel[i + radius, j + radius] = (float)(Math.Exp(-(i * i + j * j) / (sigma * sigma)));
+                    norm += kernel[i + radius, j + radius];
+                }
+            for (int i = 0; i < size; i++)
+                for (int j = 0; j < size; j++)
+                    kernel[i, j] /= norm;
+
+
+
+            for (int y = 0; y < sourceImage.Height; y++)
+                for (int x = 0; x < sourceImage.Width; x++)
+                {
+                    int radiusX = kernel.GetLength(0) / 2;
+                    int radiusY = kernel.GetLength(1) / 2;
+                    float resultR = 0, resultG = 0, resultB = 0;
+
+                    for (int l = -radiusY; l <= radiusY; l++)
+                        for (int k = -radiusX; k <= radiusX; k++)
+                        {
+                            int idX = clamp(x + k, 0, sourceImage.Width - 1);
+                            int idY = clamp(y + l, 0, sourceImage.Height - 1);
+                            Color neighborColor = sourceImage.GetPixel(idX, idY);
+                            resultR += neighborColor.R * kernel[k + radiusX, l + radiusY];
+                            resultG += neighborColor.G * kernel[k + radiusX, l + radiusY];
+                            resultB += neighborColor.B * kernel[k + radiusX, l + radiusY];
+                        }
+                     resImage.SetPixel(x,y,Color.FromArgb(clamp((int)resultR, 0, 255),
+                                          clamp((int)resultG, 0, 255),
+                                          clamp((int)resultB, 0, 255)));
+                }
+            return resImage;
+        }
+
+        private void гауссаToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Bitmap result = Gauss(image);
+            prevImage = image;
+            image = result;
+            pictureBox1.Image = result;
+            pictureBox1.Refresh();
+        }
+
+        private static byte GetBrightness(Color color)
+        {
+            return (byte)(.299 * color.R + .587 * color.G + .114 * color.B);
+        }
+
+
+        private static float ComputeMean(Bitmap image)
+        {
+            float sum = 0f;
+            for (int i = 0; i < image.Height; i++)
+                for (int j = 0; j < image.Width; j++)
+                {
+                    Color color = image.GetPixel(j, i);
+                    sum += (float)GetBrightness(color);
+                }
+            return sum / (image.Width * image.Height);
+        }
+
+        private static float ComputeVariance(Bitmap image, float mean)
+        {
+            float sum = 0f;
+            for (int i = 0; i < image.Height; i++)
+                for (int j = 0; j < image.Width; j++)
+                {
+                    Color color = image.GetPixel(j, i);
+                    sum += (float)Math.Pow((GetBrightness(color) - mean), 2);
+                }
+            return (float)Math.Sqrt(sum / ((image.Width * image.Height - 1)));
+        }
+
+        private static float ComputeCovariance(Bitmap image1, Bitmap image2, float var1, float var2)
+        {
+            float sum = 0f;
+            for (int i = 0; i < image1.Height; i++)
+                for (int j = 0; j < image1.Width; j++)
+                {
+                    Color color1 = image1.GetPixel(j, i);
+                    Color color2 = image2.GetPixel(j, i);
+                    sum += (GetBrightness(color1) - var1) * (GetBrightness(color2) - var2);
+                }
+            return sum / ((image1.Width * image1.Height - 1));
+        }
+
+        public float PSNR(Bitmap compareImage, Bitmap perfImage)
+        {
+            if (compareImage.Size != perfImage.Size) return -1;
+
+            float sum = 0f;
+            for (int i = 0; i < perfImage.Height; i++)
+                for (int j = 0; j < perfImage.Width; j++)
+                {
+                    Color perfColor = perfImage.GetPixel(j, i);
+                    Color compareColor = compareImage.GetPixel(j, i);
+                    sum += (float)Math.Pow(GetBrightness(compareColor) - GetBrightness(perfColor), 2);
+                }
+            float mse = sum / (compareImage.Width * compareImage.Height);
+            float psnr = (float)(20 * Math.Log10(255f / Math.Sqrt(mse)));
+            return psnr;
+        }
+
+        static protected Tuple<int, int> GetNextRandPixel(int width, int height)
+        {
+            Random random = new Random();
+            int x = random.Next(width);
+            int y = random.Next(height);
+            return new Tuple<int, int>(x, y);
+        }
+
+        public float SSIM(Bitmap compareImage, Bitmap perfImage)
+        {
+            const int L = 8;
+            const float k1 = 0.01f;
+            const float k2 = 0.03f;
+
+            float c1 = (float)Math.Pow(L * k1, 2);
+            float c2 = (float)Math.Pow(L * k2, 2);
+
+            float comM = ComputeMean(compareImage);
+            float perfM = ComputeMean(perfImage);
+
+            float comVar = ComputeVariance(compareImage, comM);
+            float perfVar = ComputeVariance(perfImage, perfM);
+
+            float covar = ComputeCovariance(compareImage, perfImage, comM, perfM);
+
+            float up = (2 * comM * perfM + c1) * (2 * covar + c2);
+            float down = (comM * comM + perfM * perfM + c1) *
+                    (comVar * comVar + perfVar * perfVar + c2);
+
+            float ssim =  up / down;
+
+            return ssim;
+        }
+
+        public Bitmap Uniform(Bitmap sourceImage, byte up = 255, byte down = 0)
+        {
+            Bitmap resImage = new Bitmap(sourceImage);
+
+            const float p = 0.8f;
+            int noisePixels = 0;
+            while (noisePixels < sourceImage.Height * sourceImage.Width * p)
+            {
+                var pos = GetNextRandPixel(sourceImage.Width, sourceImage.Height);
+                noisePixels++;
+                Color color = sourceImage.GetPixel(pos.Item1, pos.Item2);
+                Color tmp;
+
+                if (GetBrightness(color) >= down &&
+                GetBrightness(color) <= up)
+                    tmp = Color.FromArgb((byte)(1 / up - down), (byte)(1 / up - down), (byte)(1 / up - down));
+                else
+                    tmp = Color.Black;
+
+                resImage.SetPixel(pos.Item1, pos.Item2, tmp);
+            }
+
+
+            return resImage;
+        }
+
+        private void pSNRToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Cursor.Current = Cursors.WaitCursor;
+            MessageBox.Show(PSNR(image, prevImage).ToString());
+            Cursor.Current = Cursors.Default;
+        }
+
+        private void sSIMToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Cursor.Current = Cursors.WaitCursor;
+            MessageBox.Show(SSIM(image, prevImage).ToString());
+            Cursor.Current = Cursors.Default;
+        }
+
+        private void uniformToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Bitmap result = Uniform(image);
+            prevImage = image;
+            image = result;
+            pictureBox1.Image = result;
+            pictureBox1.Refresh();
+        }
+
+        public Bitmap ArMean(Bitmap sourceImage)
+        {
+            int width = sourceImage.Width;
+            int height = sourceImage.Height;
+            Bitmap resImage = new Bitmap(width, height);
+
+
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++)
+                {
+                    int radius = 1; // радиус матрицы
+                    int matrixSize = (1 + 2 * radius) * (1 + 2 * radius);
+
+                    int intesitySum = 0; // сумма яркостей
+
+
+                    for (int l = -radius; l <= radius; l++)
+                        for (int k = -radius; k <= radius; k++)
+                        {
+                            int idX = clamp(x + k, 0, sourceImage.Width - 1);
+                            int idY = clamp(y + l, 0, sourceImage.Height - 1);
+                            Color neighborColor = sourceImage.GetPixel(idX, idY);
+
+                            intesitySum += GetBrightness(neighborColor);
+                        }
+
+                    Color Color = Color.FromArgb(intesitySum / matrixSize, intesitySum / matrixSize, intesitySum / matrixSize);
+                    resImage.SetPixel(x, y, Color);
+
+                }
+            return resImage;
+        }
+
+        public Bitmap GeoMean(Bitmap sourceImage)
+        {
+            int width = sourceImage.Width;
+            int height = sourceImage.Height;
+            Bitmap resImage = new Bitmap(width, height);
+
+
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++)
+                {
+                    int radius = 1; // радиус матрицы
+                    int matrixSize = (1 + 2 * radius) * (1 + 2 * radius);
+
+                    float intesityMult = 1f; // сумма яркостей
+
+
+                    for (int l = -radius; l <= radius; l++)
+                        for (int k = -radius; k <= radius; k++)
+                        {
+                            int idX = clamp(x + k, 0, sourceImage.Width - 1);
+                            int idY = clamp(y + l, 0, sourceImage.Height - 1);
+                            Color neighborColor = sourceImage.GetPixel(idX, idY);
+
+                            intesityMult *= GetBrightness(neighborColor);
+                        }
+
+                    var res = (byte)Math.Pow(intesityMult, 1 / (float)matrixSize);
+
+                    Color Color = Color.FromArgb(res, res, res);
+
+                    resImage.SetPixel(x, y, Color);
+
+                }
+            return resImage;
+        }
+
+        private void арифметическоеСреднееToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Bitmap result = ArMean(image);
+            prevImage = image;
+            image = result;
+            pictureBox1.Image = result;
+            pictureBox1.Refresh();
+        }
+
+        private void геометрическоеСреднееToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Bitmap result = GeoMean(image);
+            prevImage = image;
+            image = result;
+            pictureBox1.Image = result;
+            pictureBox1.Refresh();
         }
     }
 }
