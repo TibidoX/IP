@@ -546,29 +546,101 @@ namespace lab1_izobr
             return ssim;
         }
 
-        public Bitmap Uniform(Bitmap sourceImage, byte up = 255, byte down = 0)
+        public float[] Uniform(int size)
         {
-            Bitmap resImage = new Bitmap(sourceImage);
+            double a = 32;
+            double b = 64;
 
-            const float p = 0.8f;
-            int noisePixels = 0;
-            while (noisePixels < sourceImage.Height * sourceImage.Width * p)
+            var uniform = new float[256];
+            float sum = 0f;
+
+            for (int i = 0; i < 256; i++)
             {
-                var pos = GetNextRandPixel(sourceImage.Width, sourceImage.Height);
-                noisePixels++;
-                Color color = sourceImage.GetPixel(pos.Item1, pos.Item2);
-                Color tmp;
-
-                if (GetBrightness(color) >= down &&
-                GetBrightness(color) <= up)
-                    tmp = Color.FromArgb((byte)(1 / up - down), (byte)(1 / up - down), (byte)(1 / up - down));
+                float step = i;
+                if (step >= a && step <= b)
+                {
+                    uniform[i] = (1 / (float)(b - a));
+                }
                 else
-                    tmp = Color.Black;
+                {
+                    uniform[i] = 0;
+                }
+                sum += uniform[i];
+            }
 
-                resImage.SetPixel(pos.Item1, pos.Item2, tmp);
+            for (int i = 0; i < 256; i++)
+            {
+                uniform[i] /= sum;
+                uniform[i] *= size;
+                uniform[i] = (int)Math.Floor(uniform[i]);
             }
 
 
+            return uniform;
+        }
+
+        public float[] Rayleigh(int size)
+        {
+            double a = 0;
+            double b = 0.4;
+
+            var rayleigh = new float[256];
+            float sum = 0f;
+
+            for (int i = 0; i < 256; i++)
+            {
+                double step = (float)i * 0.01;
+                if (step >= a)
+                {
+                    rayleigh[i] = (float)((2 / b) * (step - a) * Math.Exp(-Math.Pow(step - a, 2) / b));
+                }
+                else
+                {
+                    rayleigh[i] = 0;
+                }
+                sum += rayleigh[i];
+            }
+
+            for (int i = 0; i < 256; i++)
+            {
+                rayleigh[i] /= sum;
+                rayleigh[i] *= size;
+                rayleigh[i] = (int)Math.Floor(rayleigh[i]);
+            }
+
+            return rayleigh;
+        }
+
+        public Bitmap Maximum(Bitmap sourceImage)
+        {
+            int width = sourceImage.Width;
+            int height = sourceImage.Height;
+            Bitmap resImage = new Bitmap(width, height);
+
+
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++)
+                {
+                    //Color Color = CalculateNewPixelColor(sourceImage, x, y);
+                    //resImage.SetPixel(x, y, Color);
+                    int radius = 1; // радиус матрицы
+                    int matrixSize = (1 + 2 * radius) * (1 + 2 * radius);
+
+                    byte max = 0;
+
+
+                    for (int l = -radius; l <= radius; l++)
+                        for (int k = -radius; k <= radius; k++)
+                        {
+                            int idX = clamp(x + k, 0, sourceImage.Width - 1);
+                            int idY = clamp(y + l, 0, sourceImage.Height - 1);
+                            Color neighborColor = sourceImage.GetPixel(idX, idY);
+
+                            if (GetBrightness(neighborColor) > max) max = GetBrightness(neighborColor);
+                        }
+
+                    resImage.SetPixel(x,y, Color.FromArgb(max, max, max));
+                }
             return resImage;
         }
 
@@ -588,7 +660,7 @@ namespace lab1_izobr
 
         private void uniformToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            Bitmap result = Uniform(image);
+            Bitmap result = CalculateBitmap(image, Uniform(image.Width * image.Height));
             prevImage = image;
             image = result;
             pictureBox1.Image = result;
@@ -664,6 +736,51 @@ namespace lab1_izobr
             return resImage;
         }
 
+        public Bitmap CalculateBitmap(Bitmap sourceImage, float[] uniform)
+        {
+            int size = sourceImage.Width * sourceImage.Height;
+
+            var noise = ComputeNoise(uniform, size);
+
+            var resImage = new Bitmap(sourceImage);
+
+            for (int y = 0; y < sourceImage.Height; y++)
+                for (int x = 0; x < sourceImage.Width; x++)
+                {
+                    Color color = sourceImage.GetPixel(x, y);
+                    var newValue = clamp(GetBrightness(color) +
+                        noise[sourceImage.Width * y + x], 0, 255);
+
+
+                    resImage.SetPixel(x, y, Color.FromArgb(newValue, newValue, newValue));
+
+                }
+            return resImage;
+        }
+
+        protected byte[] ComputeNoise(float[] uniform, int size)
+        {
+            Random random = new Random();
+            int count = 0;
+            var noise = new byte[size];
+            for (int i = 0; i < 256; i++)
+            {
+                for (int j = 0; j < (int)uniform[i]; j++)
+                {
+                    noise[j + count] = (byte)i;
+                }
+                count += (int)uniform[i];
+            }
+
+            for (int i = 0; i < size - count; i++)
+            {
+                noise[count + i] = 0;
+            }
+
+            noise = noise.OrderBy(x => random.Next()).ToArray();
+            return noise;
+        }
+
         private void арифметическоеСреднееToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Bitmap result = ArMean(image);
@@ -676,6 +793,24 @@ namespace lab1_izobr
         private void геометрическоеСреднееToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Bitmap result = GeoMean(image);
+            prevImage = image;
+            image = result;
+            pictureBox1.Image = result;
+            pictureBox1.Refresh();
+        }
+
+        private void райлиToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Bitmap result = CalculateBitmap(image, Rayleigh(image.Width * image.Height));
+            prevImage = image;
+            image = result;
+            pictureBox1.Image = result;
+            pictureBox1.Refresh();
+        }
+
+        private void максимумаToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Bitmap result = Maximum(image);
             prevImage = image;
             image = result;
             pictureBox1.Image = result;
