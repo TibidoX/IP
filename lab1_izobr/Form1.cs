@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.IO;
 
 namespace lab1_izobr
 {
@@ -549,7 +550,7 @@ namespace lab1_izobr
         public float[] Uniform(int size)
         {
             double a = 32;
-            double b = 64;
+            double b = 120;
 
             var uniform = new float[256];
             float sum = 0f;
@@ -736,6 +737,61 @@ namespace lab1_izobr
             return resImage;
         }
 
+        byte dist_sq(byte x, byte y)
+        {
+            byte zmax = Math.Max(x, y);
+            byte zmin = Math.Min(x, y);
+            return (byte)((zmax - zmin) * (zmax - zmin));
+        }
+
+
+        double dist(byte[] data, int width, int x00, int y00, int x01, int y01, int radius)
+        {
+            double disper = 150.0;
+            double sum = 0;
+            for (int x = -radius; x <= radius; x++)
+                for (int y = -radius; y <= radius; y++)
+                    sum += dist_sq(data[(y00 + y) * width + x00 + x], data[(y01 + y) * width + x01 + x]);
+            return Math.Exp(-sum / disper);
+        }
+
+        public Bitmap NLM(Bitmap sourceImage)
+        {
+            int width = sourceImage.Width;
+            int height = sourceImage.Height;
+            Bitmap resImage = new Bitmap(width, height);
+            //int radius = 2;
+
+            //double[] processed_data = new double[width * height];
+
+            //for (int x = radius + 1; x < width - radius - 1; x++)//переписать
+            //    for (int y = radius + 1; y < height - radius - 1; y++) //переписать
+            //    {
+            //        double[,] weight_map = new double[width, height];
+            //        double norm = 0;
+            //        for (int xx = radius + 1; xx < width - radius - 1; xx++)
+            //            for (int yy = radius + 1; yy < height - radius - 1; yy++)
+            //            {
+            //                double weight = dist(data, width, x, y, xx, yy, radius);
+            //                norm += weight;
+            //                weight_map[yy * width + xx] = weight;
+            //            }
+            //        for (int xx = radius + 1; xx < width - radius - 1; ++xx)
+            //            for (int yy = radius + 1; yy < height - radius - 1; ++yy)
+            //                processed_data[y * width + x] += data[yy * width + xx] * weight_map[yy * width + xx] / norm;
+            //    }
+            //for (int x = radius + 1; x < width - radius - 1; ++x)
+            //    for (int y = radius + 1; y < height - radius - 1; ++y)
+            //        data[y * width + x] = clamp((float)processed_data[y * width + x], 0, 255);
+
+            //for (int y = 0; y < height; ++y)
+            //    for (int x = 0; x < width; ++x)
+            //        resImage.SetPixel(x, y, Color.FromArgb(data[y * width + x]));
+            return resImage;
+        }
+
+
+
         public Bitmap CalculateBitmap(Bitmap sourceImage, float[] uniform)
         {
             int size = sourceImage.Width * sourceImage.Height;
@@ -751,6 +807,9 @@ namespace lab1_izobr
                     var newValue = clamp(GetBrightness(color) +
                         noise[sourceImage.Width * y + x], 0, 255);
 
+                    //resImage.SetPixel(x, y, Color.FromArgb(clamp(color.R + noise[sourceImage.Width * y + x], 0, 255),
+                    //    clamp(color.G + noise[sourceImage.Width * y + x], 0, 255),
+                    //    clamp(color.B + noise[sourceImage.Width * y + x], 0, 255)));
 
                     resImage.SetPixel(x, y, Color.FromArgb(newValue, newValue, newValue));
 
@@ -779,6 +838,19 @@ namespace lab1_izobr
 
             noise = noise.OrderBy(x => random.Next()).ToArray();
             return noise;
+        }
+
+        public static int[] GetHistogramArray(Bitmap image)
+        {
+            int[] hist = new int[256];
+
+            for (int y = 0; y < image.Height; y++)
+                for (int x = 0; x < image.Width; x++)
+                {
+                    Color color = image.GetPixel(x, y);
+                    hist[color.R]++;
+                }
+            return hist;
         }
 
         private void арифметическоеСреднееToolStripMenuItem_Click(object sender, EventArgs e)
@@ -815,6 +887,21 @@ namespace lab1_izobr
             image = result;
             pictureBox1.Image = result;
             pictureBox1.Refresh();
+        }
+
+        private void нелокальногоСреднегоToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Bitmap result = NLM(image);
+            prevImage = image;
+            image = result;
+            pictureBox1.Image = result;
+            pictureBox1.Refresh();
+        }
+
+        private void гистограммаToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Hist frame = new Hist(GetHistogramArray((Bitmap)pictureBox1.Image));
+            frame.Show();
         }
     }
 }

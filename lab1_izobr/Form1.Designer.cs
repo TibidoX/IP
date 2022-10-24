@@ -40,6 +40,7 @@
             this.гауссаToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.арифметическоеСреднееToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.геометрическоеСреднееToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.максимумаToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.бинаризацияToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.точечнаяToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.глобальнаяпоГистограммеToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -48,10 +49,11 @@
             this.sSIMToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.шумToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.uniformToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.райлиToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.numericUpDown1 = new System.Windows.Forms.NumericUpDown();
-            this.райлиToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.максимумаToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.нелокальногоСреднегоToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.гистограммаToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.menuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).BeginInit();
@@ -65,7 +67,8 @@
             this.фильтрыToolStripMenuItem,
             this.бинаризацияToolStripMenuItem,
             this.сравнениеToolStripMenuItem,
-            this.шумToolStripMenuItem});
+            this.шумToolStripMenuItem,
+            this.гистограммаToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
             this.menuStrip1.Size = new System.Drawing.Size(1081, 28);
@@ -105,7 +108,8 @@
             this.гауссаToolStripMenuItem,
             this.арифметическоеСреднееToolStripMenuItem,
             this.геометрическоеСреднееToolStripMenuItem,
-            this.максимумаToolStripMenuItem});
+            this.максимумаToolStripMenuItem,
+            this.нелокальногоСреднегоToolStripMenuItem});
             this.фильтрыToolStripMenuItem.Name = "фильтрыToolStripMenuItem";
             this.фильтрыToolStripMenuItem.Size = new System.Drawing.Size(85, 24);
             this.фильтрыToolStripMenuItem.Text = "Фильтры";
@@ -158,6 +162,13 @@
             this.геометрическоеСреднееToolStripMenuItem.Size = new System.Drawing.Size(272, 26);
             this.геометрическоеСреднееToolStripMenuItem.Text = "Геометрическое среднее";
             this.геометрическоеСреднееToolStripMenuItem.Click += new System.EventHandler(this.геометрическоеСреднееToolStripMenuItem_Click);
+            // 
+            // максимумаToolStripMenuItem
+            // 
+            this.максимумаToolStripMenuItem.Name = "максимумаToolStripMenuItem";
+            this.максимумаToolStripMenuItem.Size = new System.Drawing.Size(272, 26);
+            this.максимумаToolStripMenuItem.Text = "Максимума";
+            this.максимумаToolStripMenuItem.Click += new System.EventHandler(this.максимумаToolStripMenuItem_Click);
             // 
             // бинаризацияToolStripMenuItem
             // 
@@ -217,9 +228,16 @@
             // uniformToolStripMenuItem
             // 
             this.uniformToolStripMenuItem.Name = "uniformToolStripMenuItem";
-            this.uniformToolStripMenuItem.Size = new System.Drawing.Size(224, 26);
+            this.uniformToolStripMenuItem.Size = new System.Drawing.Size(146, 26);
             this.uniformToolStripMenuItem.Text = "Uniform";
             this.uniformToolStripMenuItem.Click += new System.EventHandler(this.uniformToolStripMenuItem_Click);
+            // 
+            // райлиToolStripMenuItem
+            // 
+            this.райлиToolStripMenuItem.Name = "райлиToolStripMenuItem";
+            this.райлиToolStripMenuItem.Size = new System.Drawing.Size(146, 26);
+            this.райлиToolStripMenuItem.Text = "Райли";
+            this.райлиToolStripMenuItem.Click += new System.EventHandler(this.райлиToolStripMenuItem_Click);
             // 
             // pictureBox1
             // 
@@ -243,19 +261,19 @@
             this.numericUpDown1.TabIndex = 2;
             this.numericUpDown1.ValueChanged += new System.EventHandler(this.numericUpDown1_ValueChanged);
             // 
-            // райлиToolStripMenuItem
+            // нелокальногоСреднегоToolStripMenuItem
             // 
-            this.райлиToolStripMenuItem.Name = "райлиToolStripMenuItem";
-            this.райлиToolStripMenuItem.Size = new System.Drawing.Size(224, 26);
-            this.райлиToolStripMenuItem.Text = "Райли";
-            this.райлиToolStripMenuItem.Click += new System.EventHandler(this.райлиToolStripMenuItem_Click);
+            this.нелокальногоСреднегоToolStripMenuItem.Name = "нелокальногоСреднегоToolStripMenuItem";
+            this.нелокальногоСреднегоToolStripMenuItem.Size = new System.Drawing.Size(272, 26);
+            this.нелокальногоСреднегоToolStripMenuItem.Text = "Нелокального среднего";
+            this.нелокальногоСреднегоToolStripMenuItem.Click += new System.EventHandler(this.нелокальногоСреднегоToolStripMenuItem_Click);
             // 
-            // максимумаToolStripMenuItem
+            // гистограммаToolStripMenuItem
             // 
-            this.максимумаToolStripMenuItem.Name = "максимумаToolStripMenuItem";
-            this.максимумаToolStripMenuItem.Size = new System.Drawing.Size(272, 26);
-            this.максимумаToolStripMenuItem.Text = "Максимума";
-            this.максимумаToolStripMenuItem.Click += new System.EventHandler(this.максимумаToolStripMenuItem_Click);
+            this.гистограммаToolStripMenuItem.Name = "гистограммаToolStripMenuItem";
+            this.гистограммаToolStripMenuItem.Size = new System.Drawing.Size(114, 24);
+            this.гистограммаToolStripMenuItem.Text = "Гистограмма";
+            this.гистограммаToolStripMenuItem.Click += new System.EventHandler(this.гистограммаToolStripMenuItem_Click);
             // 
             // Form1
             // 
@@ -303,6 +321,8 @@
         private System.Windows.Forms.ToolStripMenuItem геометрическоеСреднееToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem райлиToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem максимумаToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem нелокальногоСреднегоToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem гистограммаToolStripMenuItem;
     }
 }
 
