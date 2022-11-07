@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
+using System.Numerics;
 
 namespace lab1_izobr
 {
@@ -747,7 +748,7 @@ namespace lab1_izobr
 
         double dist(byte[] data, int width, int x00, int y00, int x01, int y01, int radius)
         {
-            double disper = 150.0;
+            double disper = 15000.0;
             double sum = 0;
             for (int x = -radius; x <= radius; x++)
                 for (int y = -radius; y <= radius; y++)
@@ -755,42 +756,96 @@ namespace lab1_izobr
             return Math.Exp(-sum / disper);
         }
 
+        double ds(byte x, byte y)
+        {
+            byte zmax = Math.Max(x, y);
+            byte zmin = Math.Min(x, y);
+            return (zmax - zmin) * (zmax - zmin);
+        }
+
         public Bitmap NLM(Bitmap sourceImage)
         {
             int width = sourceImage.Width;
             int height = sourceImage.Height;
             Bitmap resImage = new Bitmap(width, height);
-            //int radius = 2;
-
-            //double[] processed_data = new double[width * height];
-
-            //for (int x = radius + 1; x < width - radius - 1; x++)//переписать
-            //    for (int y = radius + 1; y < height - radius - 1; y++) //переписать
-            //    {
-            //        double[,] weight_map = new double[width, height];
-            //        double norm = 0;
-            //        for (int xx = radius + 1; xx < width - radius - 1; xx++)
-            //            for (int yy = radius + 1; yy < height - radius - 1; yy++)
-            //            {
-            //                double weight = dist(data, width, x, y, xx, yy, radius);
-            //                norm += weight;
-            //                weight_map[yy * width + xx] = weight;
-            //            }
-            //        for (int xx = radius + 1; xx < width - radius - 1; ++xx)
-            //            for (int yy = radius + 1; yy < height - radius - 1; ++yy)
-            //                processed_data[y * width + x] += data[yy * width + xx] * weight_map[yy * width + xx] / norm;
-            //    }
-            //for (int x = radius + 1; x < width - radius - 1; ++x)
-            //    for (int y = radius + 1; y < height - radius - 1; ++y)
-            //        data[y * width + x] = clamp((float)processed_data[y * width + x], 0, 255);
-
-            //for (int y = 0; y < height; ++y)
-            //    for (int x = 0; x < width; ++x)
-            //        resImage.SetPixel(x, y, Color.FromArgb(data[y * width + x]));
+            for (int x = 0; x < width; x++)
+                for (int y = 0; y < height; y++)
+                    resImage.SetPixel(x, y, Color.FromArgb(0, 0, 0));
+            int radius = 3;
+            //double[,] w = new double[width, height];
+            for (int x = radius + 1; x < width - radius - 1; x++)
+                for (int y = radius + 1; y < height - radius - 1; y++)
+                {
+                    double[,] w = new double[width,height];
+                    double norm = 0;
+                    for (int xx = radius + 1; xx < width - radius - 1; xx++)
+                        for (int yy = radius + 1; yy < height - radius - 1; yy++)
+                        {
+                            double weight = don(sourceImage, x, y, xx, yy, radius);
+                            norm += weight;
+                            w[xx, yy] = weight;
+                        }
+                    for (int xx = radius + 1; xx < width - radius - 1; xx++)
+                        for (int yy = radius + 1; yy < height - radius - 1; yy++)
+                        {
+                            Color tmp = Color.FromArgb(clamp((byte)(resImage.GetPixel(x, y).R + sourceImage.GetPixel(xx, yy).R * w[xx, yy] / norm), 0, 255),
+                                                       clamp((byte)(resImage.GetPixel(x, y).R + sourceImage.GetPixel(xx, yy).R * w[xx, yy] / norm), 0, 255),
+                                                       clamp((byte)(resImage.GetPixel(x, y).R + sourceImage.GetPixel(xx, yy).R * w[xx, yy] / norm), 0, 255));
+                            resImage.SetPixel(x, y, tmp);
+                        }
+                }
             return resImage;
+
+            //int width = sourceImage.Width;
+            //int height = sourceImage.Height;
+            //Bitmap resImage = new Bitmap(width, height);
+            //double[,] w = new double[width, height];//weight map
+
+            //for (int y = 0; y < height; y++)
+            //    for (int x = 0; x < width; x++)
+            //    {
+            //        int radius = 3;//1; // радиус матрицы
+            //        int matrixSize = (1 + 2 * radius) * (1 + 2 * radius);
+            //        double sumdistance = 0;
+            //        int h = 15000;//коэффициент
+            //        for (int l = -radius; l <= radius; l++)
+            //            for (int k = -radius; k <= radius; k++)
+            //            {
+            //                int idX = clamp(x + k, 0, sourceImage.Width - 1);
+            //                int idY = clamp(y + l, 0, sourceImage.Height - 1);
+            //                Color neighborColor = sourceImage.GetPixel(idX, idY);
+            //                double osn = sourceImage.GetPixel(x, y).R - neighborColor.R;
+            //                sumdistance += (osn * osn);
+            //            }
+            //        w[x, y] = Math.Exp(sumdistance / h / h);
+            //        double newcolor = 0;
+            //        newcolor += (w[x, y] * sourceImage.GetPixel(x, y).R);
+            //        newcolor = newcolor / w[x, y];
+
+            //        Color color = Color.FromArgb(clamp((int)(newcolor), 0, 255),
+            //            clamp((int)(newcolor), 0, 255),
+            //          clamp((int)(newcolor), 0, 255));
+            //        resImage.SetPixel(x, y, color);
+            //    }
+
+            //return resImage;
         }
 
-
+        double don(Bitmap sourceImage, int x00, int y00, int x01, int y01, int radius)
+        {
+            double dispersion = 15000.0;
+            double accumulator = 0;
+            for (int x = -radius; x <= radius; ++x)
+            {
+                for (int y = -radius; y <= radius; ++y)
+                {
+                    byte f = sourceImage.GetPixel(x00 + x, y00 + y).R;
+                    byte s = sourceImage.GetPixel(x01 + x, y01 + y).R;
+                    accumulator += ds(f, s);
+                }
+            }
+            return Math.Exp(-accumulator / dispersion);
+        }
 
         public Bitmap CalculateBitmap(Bitmap sourceImage, float[] uniform)
         {
